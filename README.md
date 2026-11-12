@@ -2,7 +2,37 @@
 
 一个无第三方依赖的 JavaScript 请求中间件，通过在指定文本中插入零宽空格（`U+200B`），打散系统指令和工具描述中的连续英文字母。无需维护关键词列表。
 
-仓库提供单个 ES 模块，导出 `onRequest(body, ctx)`，由宿主应用在发送请求前调用。
+仓库提供单个 ES 模块，导出 `onRequest(body, ctx)`，在 Magpie 路由请求前调用。`package.json` 通过 `magpie.middleware` 声明入口，可直接从 GitHub 仓库、文件夹或单文件安装。
+
+## 安装与更新
+
+在 Magpie 的「插件 → 添加插件」中输入：
+
+```text
+github:zuoban/magpie-middleware-universal-cloak
+```
+
+也可以使用命令行安装：
+
+```sh
+magpie plugin add github:zuoban/magpie-middleware-universal-cloak
+```
+
+开发时，在仓库根目录选择以下一种方式安装，避免重复启用：
+
+```sh
+magpie plugin add .
+```
+
+或直接安装单文件：
+
+```sh
+magpie plugin add ./universal-cloak.middleware.js
+```
+
+在插件页更新已安装的 GitHub 插件，即可获取修复；命令行 `magpie plugin update` 会更新已安装的插件。更新后可运行 `magpie plugin --json`，检查 `middleware` 中是否出现本插件及 `onRequest` 钩子，并确认没有加载错误。
+
+本插件不提供供应商或模型，不需要单独登录。它作用于经过 Magpie 网关的请求。安装规范见 [Magpie 插件开发文档](https://usemagpie.ai/docs/zh/plugins)。
 
 ## 工作原理
 
@@ -41,9 +71,11 @@ text.replace(/([A-Za-z]{3})([A-Za-z]{2,})/g, "$1\u200b$2");
 
 ## 接入方式
 
-运行环境需支持 ES 模块与全局 `structuredClone`。本仓库没有 `package.json`、安装依赖或构建步骤；请让宿主应用按 ES 模块加载 `.js` 文件。
+Magpie 网关中间件运行在内置的 moejs 引擎中，而非 Bun 或 Node.js。本插件不依赖 Node API、网络请求或第三方包，也无需安装依赖或执行构建。`package.json` 仅声明 ES 模块、检查命令和中间件入口，不设置供应商插件的 `main` 或 `exports`。
 
-在请求发送前调用：
+模块需要 ES 模块支持和全局 `structuredClone`。已在本机 Magpie `0.1.3952` 中验证加载和请求转换。
+
+在其他支持 ES 模块的环境中，也可以直接调用：
 
 ```js
 import { onRequest } from "./universal-cloak.middleware.js";
@@ -60,26 +92,22 @@ const transformed = onRequest(body, {});
 console.log(JSON.stringify(transformed).replace(/\u200b/g, "\\u200b"));
 ```
 
-将 `transformed` 作为后续请求体传给宿主应用的发送逻辑。第二个参数 `ctx` 当前未使用。若宿主支持加载带有 `onRequest` 导出的中间件文件，可按该宿主的配置方式注册本文件。
+将 `transformed` 作为后续请求体传给宿主应用的发送逻辑。第二个参数 `ctx` 当前未使用。
 
 ## 本地验证
 
 在仓库根目录运行语法检查：
 
 ```sh
-node --input-type=module --check < universal-cloak.middleware.js
+npm run check
 ```
 
-以下命令通过数据 URL 加载本地模块，可在不增加 `package.json` 的情况下验证转换结果与输入不变性：
+以下命令直接加载本地模块，验证转换结果与输入不变性：
 
 ```sh
 node --input-type=module <<'NODE'
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-
-const source = await readFile("./universal-cloak.middleware.js", "utf8");
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
-const { onRequest } = await import(moduleUrl);
+import { onRequest } from "./universal-cloak.middleware.js";
 const input = { instructions: "Hello world", messages: [{ role: "user", content: "Hello" }] };
 const output = onRequest(input, {});
 
@@ -103,5 +131,6 @@ NODE
 ## 仓库文件
 
 - `universal-cloak.middleware.js`：中间件实现。
+- `package.json`：Magpie 中间件声明与 ES 模块配置。
 - `AGENTS.md`：贡献指南与代码约定。
 - `README.md`：使用说明。

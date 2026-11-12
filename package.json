@@ -1,0 +1,26 @@
+{
+  "name": "magpie-middleware-universal-cloak",
+  "version": "0.1.0",
+  "description": "Magpie gateway middleware that inserts zero-width spaces into instruction text and tool descriptions",
+  "type": "module",
+  "files": [
+    "universal-cloak.middleware.js",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check universal-cloak.middleware.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zuoban/magpie-middleware-universal-cloak.git"
+  },
+  "keywords": [
+    "magpie-plugin",
+    "magpie",
+    "middleware"
+  ],
+  "magpie": {
+    "name": "Universal Cloak",
+    "middleware": "./universal-cloak.middleware.js"
+  }
+}
